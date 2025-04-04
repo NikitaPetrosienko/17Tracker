@@ -1,0 +1,13 @@
+/* 
+  Localizable.strings
+  Tracker
+
+  Created by Kaider on 16.01.2025.
+  
+*/
+
+"emptyState.title" = "What are we going to track?";
+"delete" = "Delete";
+"delete.comfirmation" = "Are you sure you want to delete the tracker?";
+"cancel" = "Cancel";
+
