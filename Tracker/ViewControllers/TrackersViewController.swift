@@ -1,10 +1,4 @@
-//
-//  TrackersViewController.swift
-//  Tracker
-//
-//  Created by Kaider on 30.11.2024.
-//  Adapted for Sprint 17 with improvements from Sprint 16
-//
+
 
 import UIKit
 import CoreData
