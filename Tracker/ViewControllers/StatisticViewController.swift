@@ -1,11 +1,15 @@
-
 import UIKit
 
 final class StatisticViewController: UIViewController {
     
+    // Массив для хранения созданных прямоугольников
     var rectangleViews: [UIView] = []
+    // Значения статистики, которые будут отображаться
     private var values: [String] = []
+    // Текст для нижней подписи прямоугольников
     private let bottomText = ["Лучший период", "Идеальные дни", "Трекеров завершено", "Среднее значение"]
+    
+    // Константы отступов и размеров
     private let topPaddingForTitle: CGFloat = 88
     private let verticalSpacingBetweenTitleAndRectangles: CGFloat = 77
     private let rectangleHeight: CGFloat = 90
@@ -26,7 +30,7 @@ final class StatisticViewController: UIViewController {
     
     private lazy var placeholderImageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.image = UIImage(named: "NothingNotFound")
+        imageView.image = UIImage(named: "sad")
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
@@ -47,13 +51,11 @@ final class StatisticViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = UIColor(named: "background")
-        self.view.addSubview(titleLabel)
         
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: topPaddingForTitle),
-            titleLabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: screenLeftPadding),
-        ])
+        // Устанавливаем все UI элементы
+        setupViews()
         
+        // Регистрируем уведомление об изменении статистики
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(updateStatistics),
@@ -61,6 +63,8 @@ final class StatisticViewController: UIViewController {
             object: nil
         )
         
+        // Для тестирования очищаем статистику, затем обновляем её
+//        StatisticStore.shared.clearStatistics()
         fetchAndUpdateStatistics()
     }
     
@@ -73,6 +77,52 @@ final class StatisticViewController: UIViewController {
         NotificationCenter.default.removeObserver(self)
     }
     
+    // MARK: - Setup Views
+    
+    private func setupViews() {
+        // Добавляем titleLabel и placeholder-элементы
+        view.addSubview(titleLabel)
+        view.addSubview(placeholderImageView)
+        view.addSubview(placeholderLabel)
+        
+        NSLayoutConstraint.activate([
+            // TitleLabel
+            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: topPaddingForTitle),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: screenLeftPadding),
+            
+            // PlaceholderImageView
+            placeholderImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            placeholderImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            placeholderImageView.widthAnchor.constraint(equalToConstant: 80),
+            placeholderImageView.heightAnchor.constraint(equalToConstant: 80),
+            
+            // PlaceholderLabel
+            placeholderLabel.topAnchor.constraint(equalTo: placeholderImageView.bottomAnchor, constant: 8),
+            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+        ])
+        
+        // Изначально скрываем прямоугольники (placeholder будет показан, если данных нет)
+        updatePlaceholderVisibility(false)
+        // Делаем placeholder видимым поверх других элементов (если потребуется)
+        view.bringSubviewToFront(placeholderImageView)
+        view.bringSubviewToFront(placeholderLabel)
+    }
+    
+    // Скрывает или показывает placeholder в зависимости от наличия данных
+    private func updatePlaceholderVisibility(_ hasData: Bool) {
+        placeholderImageView.isHidden = hasData
+        placeholderLabel.isHidden = hasData
+    }
+    
+    // Удаляет ранее созданные прямоугольники, чтобы не накапливать их
+    private func removeExistingRectangles() {
+        for rect in rectangleViews {
+            rect.removeFromSuperview()
+        }
+        rectangleViews.removeAll()
+    }
+    
+    // Получает статистику и обновляет UI: если есть данные – создаёт прямоугольники, иначе показывает placeholder
     private func fetchAndUpdateStatistics() {
         let statistics = StatisticStore.shared.fetchStatistics()
         
@@ -83,44 +133,30 @@ final class StatisticViewController: UIViewController {
             "\(statistics.averageCompletion)%"
         ]
         
-        createRectangles()
+        // Проверяем, есть ли ненулевые данные
+        let hasData = statistics.bestStreak != 0 ||
+                      statistics.idealDays != 0 ||
+                      statistics.completedTrackers != 0 ||
+                      statistics.averageCompletion != 0
+        
+        // Удаляем предыдущие прямоугольники
+        removeExistingRectangles()
+        
+        if hasData {
+            updatePlaceholderVisibility(true)
+            createRectangles()
+        } else {
+            updatePlaceholderVisibility(false)
+        }
     }
     
-    // MARK: - Setup
+    // MARK: - Создание UI для статистики
     
-    private func setupViews() {
-        view.backgroundColor = UIColor(named: "background")
-        
-        view.addSubview(placeholderImageView)
-        view.addSubview(placeholderLabel)
-        
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            
-            placeholderImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            placeholderImageView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            placeholderImageView.widthAnchor.constraint(equalToConstant: 80),
-            placeholderImageView.heightAnchor.constraint(equalToConstant: 80),
-            
-            placeholderLabel.topAnchor.constraint(equalTo: placeholderImageView.bottomAnchor, constant: 8),
-            placeholderLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
-        ])
-        
-        updatePlaceholderVisibility(false)
-    }
-    
-    private func updatePlaceholderVisibility(_ hasData: Bool) {
-        placeholderImageView.isHidden = hasData
-        placeholderLabel.isHidden = hasData
-    }
-
     func createRectangles() {
         let verticalSpacing = topPaddingForTitle + verticalSpacingBetweenTitleAndRectangles
         
         for i in 0..<4 {
             let rectangleView = UIView()
-            
             rectangleView.frame = CGRect(
                 x: screenLeftPadding,
                 y: verticalSpacing + CGFloat(i) * (rectangleHeight + horizontalSpacing),
@@ -139,28 +175,23 @@ final class StatisticViewController: UIViewController {
     
     func addGradientBorder(to view: UIView) {
         let gradientLayer = CAGradientLayer()
-
         gradientLayer.colors = [
             UIColor.red.cgColor,
             UIColor.yellow.cgColor,
             UIColor.green.cgColor,
             UIColor.blue.cgColor
         ]
-        
         gradientLayer.startPoint = CGPoint(x: 0, y: 0.5)
         gradientLayer.endPoint = CGPoint(x: 1, y: 0.5)
-        
         let borderFrame = CGRect(
             x: view.frame.origin.x - 1,
             y: view.frame.origin.y - 1,
             width: view.frame.size.width + 2,
             height: view.frame.size.height + 2
         )
-        
         gradientLayer.frame = borderFrame
         gradientLayer.cornerRadius = view.layer.cornerRadius
         gradientLayer.masksToBounds = true
-
         self.view.layer.insertSublayer(gradientLayer, below: view.layer)
     }
     
@@ -174,7 +205,7 @@ final class StatisticViewController: UIViewController {
        
         NSLayoutConstraint.activate([
             valueLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
-            valueLabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 12),
+            valueLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
         ])
     }
     
@@ -184,12 +215,11 @@ final class StatisticViewController: UIViewController {
         bottomTextLabel.font = .systemFont(ofSize: 12)
         bottomTextLabel.textColor = UIColor(named: "categoryTextColor")
         bottomTextLabel.translatesAutoresizingMaskIntoConstraints = false
-
         view.addSubview(bottomTextLabel)
         
         NSLayoutConstraint.activate([
             bottomTextLabel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12),
-            bottomTextLabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 12),
+            bottomTextLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
         ])
     }
     

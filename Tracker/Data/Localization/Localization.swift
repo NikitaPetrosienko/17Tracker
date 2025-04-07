@@ -17,4 +17,5 @@ final class Localization {
     static let deleteText = NSLocalizedString("delete", comment: "Delete")
     static let searchText = NSLocalizedString("search", comment: "Search")
     static let nothingNotFoundText = NSLocalizedString("nothing.not.found", comment: "Nothing not found")
+    static let pinnedText = NSLocalizedString("pinnedText", comment: "Название для закреплённых трекеров")
 }

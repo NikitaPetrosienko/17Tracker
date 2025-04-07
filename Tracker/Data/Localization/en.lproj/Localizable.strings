@@ -14,4 +14,5 @@
 "delete" = "Delete";
 "search" = "Search";
 "nothing.not.found" = "Nothing not found";
+"pinnedText" = "Pinned";       // для английского языка
 

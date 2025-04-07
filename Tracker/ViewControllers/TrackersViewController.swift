@@ -1,20 +1,24 @@
+//
+//  TrackersViewController.swift
+//  Tracker
+//
+//  Created by Kaider on 30.11.2024.
+//  Adapted for Sprint 17 with improvements from Sprint 16
+//
 
 import UIKit
 import CoreData
 import YandexMobileMetrica
 
-// Реализация протокола FilterListControllerDelegate – метод для выбора фильтра
 final class TrackersViewController: UIViewController, FilterListControllerDelegate {
-
-    // MARK: - Protocol Methods
-
+    
+    // MARK: - FilterListControllerDelegate
     func didSelectFilter(_ filter: FilterType) {
-        // При выборе фильтра применяем его
         filteredTracker(filter)
     }
-
+    
     // MARK: - Properties
-
+    
     // NSFetchedResultsController для автоматического отслеживания изменений в Core Data
     private var fetchedResultsController: NSFetchedResultsController<TrackerCoreData>!
     
@@ -24,7 +28,7 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
     var currentDate: Date = Date()
     var completedTrackers: Set<CompletedTrackerID> = []
     
-    // Дополнительные свойства спринта 17
+    // Свойства спринта 17
     private let trackerStore: TrackerStoreProtocol = TrackerStore.shared
     private let trackerRecordStore = TrackerRecordStore()
     private let trackerCategoryStore = TrackerCategoryStore()
@@ -89,6 +93,7 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
         stack.spacing = 8
         stack.alignment = .center
         stack.translatesAutoresizingMaskIntoConstraints = false
+        // При отсутствии трекеров placeholder показывается
         stack.isHidden = true
         return stack
     }()
@@ -177,10 +182,10 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Принудительно устанавливаем светлый режим, чтобы динамические цвета не влияли
-        if #available(iOS 13.0, *) {
-            overrideUserInterfaceStyle = .light
-        }
+        // Если хотите, чтобы экран поддерживал системную тему, удалите принудительный light mode
+        // if #available(iOS 13.0, *) {
+        //     overrideUserInterfaceStyle = .light
+        // }
         setupViews()
         setupNavigationBar()
         setupPlaceholder()
@@ -315,89 +320,100 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
     
     private func updatePlaceholderVisibility() {
         let hasVisibleTrackers = !filteredCategories.isEmpty
-        let isFiltering = currentFilter != .allTrackers
         let isSearching = !searchText.isEmpty
-        
-        placeholderStack.isHidden = hasVisibleTrackers || isFiltering || isSearching
-        emptyFilterLabel.isHidden = hasVisibleTrackers || (!isFiltering && !isSearching)
-        emptyFilterImage.isHidden = hasVisibleTrackers || (!isFiltering && !isSearching)
-        
-        collectionView.isHidden = !hasVisibleTrackers
-        
-        if isSearching && filteredCategories.isEmpty {
-            emptyFilterLabel.text = Localization.nothingNotFoundText
+
+        if hasVisibleTrackers {
+            // Если трекеры есть – показываем коллекцию и скрываем оба placeholder-а
+            collectionView.isHidden = false
+            placeholderStack.isHidden = true
+            emptyFilterLabel.isHidden = true
+            emptyFilterImage.isHidden = true
+        } else {
+            // Если трекеры отсутствуют – скрываем коллекцию
+            collectionView.isHidden = true
+            if isSearching {
+                // Если пользователь ищет, показываем emptyFilter (например, "Ничего не найдено")
+                placeholderStack.isHidden = true
+                emptyFilterLabel.isHidden = false
+                emptyFilterImage.isHidden = false
+                emptyFilterLabel.text = Localization.nothingNotFoundText
+            } else {
+                // Если поиск не активен, показываем основной placeholder (например, "Что будем отслеживать?")
+                placeholderStack.isHidden = false
+                emptyFilterLabel.isHidden = true
+                emptyFilterImage.isHidden = true
+            }
         }
     }
-    
+
     private func filterTrackersByDate(_ date: Date) -> [TrackerCategory] {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: date)
         let adjustedWeekday = WeekDay(rawValue: weekday == 1 ? 7 : weekday - 1) ?? .monday
+        print("\(#file):\(#line)] \(#function) Фильтрация для даты: \(date), день недели: \(adjustedWeekday.shortName)")
         
-        let filteredCategories = categories.compactMap { category in
+        let filtered = categories.compactMap { category -> TrackerCategory? in
             let filteredTrackers = category.trackers.filter { tracker in
-                let isIrregularEvent = tracker.schedule.count == 1 && tracker.creationDate != nil
-                if isIrregularEvent {
-                    let isCompletedInAnyDay = completedTrackers.contains { completedID in
-                        completedID.id == tracker.id
-                    }
-                    if isCompletedInAnyDay {
-                        let isCompletedOnThisDay = completedTrackers.contains { completedID in
-                            completedID.id == tracker.id && calendar.isDate(completedID.date, inSameDayAs: date)
+                let isIrregular = tracker.schedule.count == 1 && tracker.creationDate != nil
+                if isIrregular {
+                    let isCompletedAny = completedTrackers.contains { $0.id == tracker.id }
+                    if isCompletedAny {
+                        let isCompletedToday = completedTrackers.contains {
+                            $0.id == tracker.id && calendar.isDate($0.date, inSameDayAs: date)
                         }
-                        return isCompletedOnThisDay
+                        return isCompletedToday
                     } else {
                         return true
                     }
                 } else {
-                    let isScheduledForToday = tracker.schedule.contains(adjustedWeekday)
-                    return isScheduledForToday
+                    return tracker.schedule.contains(adjustedWeekday)
                 }
             }
             return filteredTrackers.isEmpty ? nil : TrackerCategory(title: category.title, trackers: filteredTrackers)
         }
-        print("Найдено после фильтрации: категорий - \(filteredCategories.count), трекеров - \(filteredCategories.reduce(0) { $0 + $1.trackers.count })")
-        return filteredCategories
+        print("Найдено после фильтрации: категорий - \(filtered.count), трекеров - \(filtered.reduce(0) { $0 + $1.trackers.count })")
+        return filtered
     }
     
     private func loadTrackerRecords() {
         do {
             let records = try trackerRecordStore.fetchRecords()
             completedTrackers = Set(records.map { CompletedTrackerID(id: $0.id, date: $0.date) })
-            print("Загружено записей: \(records.count)")
+            print("\(#file):\(#line)] \(#function) Загружено записей: \(records.count)")
         } catch {
-            print("Ошибка загрузки записей трекеров: \(error)")
+            print("\(#file):\(#line)] \(#function) Ошибка загрузки записей трекеров: \(error)")
         }
     }
     
     private func loadTrackersFromStore() {
-        guard let trackerCoreDatas = fetchedResultsController.fetchedObjects else { return }
+        guard let coreDatas = fetchedResultsController.fetchedObjects else { return }
         
         do {
-            let loadedTrackers = try trackerCoreDatas.map { coreData -> Tracker in
+            let loadedTrackers = try coreDatas.map { coreData -> Tracker in
                 return try (trackerStore as! TrackerCoreStore).tracker(from: coreData)
             }
             
-            var categoriesDict: [String: [Tracker]] = [:]
-            let pinnedTrackers = loadedTrackers.filter { $0.isPinned }
-            if !pinnedTrackers.isEmpty {
-                categoriesDict["Закрепленные"] = pinnedTrackers
+            var dict: [String: [Tracker]] = [:]
+            let pinned = loadedTrackers.filter { $0.isPinned }
+            if !pinned.isEmpty {
+                // Используем литерал для закреплённых
+                dict["Закрепленные"] = pinned
             }
-            let unpinnedTrackers = loadedTrackers.filter { !$0.isPinned }
-            for tracker in unpinnedTrackers {
+            let unpinned = loadedTrackers.filter { !$0.isPinned }
+            for tracker in unpinned {
                 let categoryTitle = tracker.originalCategory ?? "Важное"
-                categoriesDict[categoryTitle, default: []].append(tracker)
+                dict[categoryTitle, default: []].append(tracker)
             }
             
-            categories = categoriesDict.map { TrackerCategory(title: $0.key, trackers: $0.value) }
-            categories.sort { category1, category2 in
-                if category1.title == "Закрепленные" {
+            categories = dict.map { TrackerCategory(title: $0.key, trackers: $0.value) }
+            categories.sort { cat1, cat2 in
+                if cat1.title == "Закрепленные" {
                     return true
                 }
-                if category2.title == "Закрепленные" {
+                if cat2.title == "Закрепленные" {
                     return false
                 }
-                return category1.title < category2.title
+                return cat1.title < cat2.title
             }
             
             filteredCategories = filterTrackersByDate(currentDate)
@@ -406,10 +422,10 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
                 self.collectionView.reloadData()
                 self.updatePlaceholderVisibility()
                 self.updateFilterButtonVisibility()
-                print("Загружено категорий: \(self.categories.count)")
+                print("\(#file):\(#line)] \(#function) Загружено категорий: \(self.categories.count)")
             }
         } catch {
-            print("Ошибка преобразования объектов трекера: \(error)")
+            print("\(#file):\(#line)] \(#function) Ошибка преобразования объектов трекера: \(error)")
         }
     }
     
@@ -418,9 +434,9 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
     @objc private func addButtonTapped() {
         let newTrackerController = NewTrackerController()
         newTrackerController.delegate = self
-        let navigationController = UINavigationController(rootViewController: newTrackerController)
-        navigationController.modalPresentationStyle = .automatic
-        present(navigationController, animated: true)
+        let nav = UINavigationController(rootViewController: newTrackerController)
+        nav.modalPresentationStyle = .automatic
+        present(nav, animated: true)
         
         AnalyticsService.shared.trackEvent("click", parameters: [
             "Screen": "Main",
@@ -433,17 +449,16 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
         let formattedDate = dateFormatter.string(from: sender.date)
         print("Выбрана дата: \(formattedDate)")
         
-        filteredCategories = filterTrackersByDate(currentDate)
+        filteredTracker(currentFilter)
         updateFilterButtonVisibility()
-        collectionView.reloadData()
     }
     
     @objc private func filterButtonTapped() {
-        let filterListViewModel = FilterListViewModel()
-        let filterListController = FilterListController(viewModel: filterListViewModel)
-        filterListController.delegate = self
-        filterListController.modalPresentationStyle = .automatic
-        present(filterListController, animated: true)
+        let filterVM = FilterListViewModel()
+        let filterController = FilterListController(viewModel: filterVM)
+        filterController.delegate = self
+        filterController.modalPresentationStyle = .automatic
+        present(filterController, animated: true)
        
         AnalyticsService.shared.trackEvent("click", parameters: [
             "Screen": "Main",
@@ -451,7 +466,7 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
         ])
     }
     
-    // MARK: - TrackerManagement
+    // MARK: - Tracker Management
     
     func isTrackerCompleted(_ tracker: Tracker, date: Date) -> Bool {
         let completedID = CompletedTrackerID(id: tracker.id, date: date)
@@ -465,9 +480,9 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
             let record = TrackerRecord(id: tracker.id, date: date)
             try trackerRecordStore.addNewRecord(record)
             StatisticStore.shared.updateStatistics()
-            print("Сохранена запись трекера: \(tracker.title)")
+            print("\(#file):\(#line)] \(#function) Сохранена запись трекера: \(tracker.title)")
         } catch {
-            print("Ошибка сохранения записи трекера: \(error)")
+            print("\(#file):\(#line)] \(#function) Ошибка сохранения записи трекера: \(error)")
         }
         collectionView.reloadData()
     }
@@ -478,15 +493,15 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
             try trackerRecordStore.deleteRecord(id: tracker.id, date: date)
             completedTrackers.remove(completedID)
             StatisticStore.shared.updateStatistics()
-            print("Успешно удалена запись трекера: \(tracker.title)")
+            print("\(#file):\(#line)] \(#function) Успешно удалена запись трекера: \(tracker.title)")
             collectionView.reloadData()
         } catch {
-            print("Ошибка удаления записи трекера: \(error)")
+            print("\(#file):\(#line)] \(#function) Ошибка удаления записи трекера: \(error)")
         }
     }
     
     func countCompletedDays(for tracker: Tracker) -> Int {
-        completedTrackers.filter { $0.id == tracker.id }.count
+        return completedTrackers.filter { $0.id == tracker.id }.count
     }
     
     func createCategory(withTitle title: String) {
@@ -508,7 +523,6 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
             hasher.combine(id)
             hasher.combine(Calendar.current.startOfDay(for: date))
         }
-        
         static func == (lhs: CompletedTrackerID, rhs: CompletedTrackerID) -> Bool {
             return lhs.id == rhs.id &&
                 Calendar.current.isDate(lhs.date, inSameDayAs: rhs.date)
@@ -544,7 +558,7 @@ final class TrackersViewController: UIViewController, FilterListControllerDelega
         
         collectionView.reloadData()
         updatePlaceholderVisibility()
-        print("Применен фильтр: \(filter.rawValue)")
+        print("\(#file):\(#line)] \(#function) Применен фильтр: \(filter.rawValue)")
     }
     
     private func updateFilterButtonVisibility() {
@@ -577,7 +591,6 @@ extension TrackersViewController: UICollectionViewDelegate {
                         contextMenuConfigurationForItemAt indexPath: IndexPath,
                         point: CGPoint) -> UIContextMenuConfiguration? {
         let tracker = filteredCategories[indexPath.section].trackers[indexPath.item]
-        
         return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             guard let self = self else { return UIMenu(title: "", children: []) }
             
@@ -586,10 +599,8 @@ extension TrackersViewController: UICollectionViewDelegate {
             
             let pinAction = UIAction(title: pinTitle, image: pinImage) { [weak self] _ in
                 guard let self = self else { return }
-                
                 let tracker = self.filteredCategories[indexPath.section].trackers[indexPath.item]
                 let categoryTitle = self.filteredCategories[indexPath.section].title
-                
                 let updatedTracker = Tracker(
                     id: tracker.id,
                     title: tracker.title,
@@ -625,15 +636,12 @@ extension TrackersViewController: UICollectionViewDelegate {
             let editAction = UIAction(title: Localization.editText, image: UIImage(systemName: "pencil")) { [weak self] _ in
                 guard let self = self,
                       let category = self.categories.first(where: { $0.trackers.contains(where: { $0.id == tracker.id }) }) else { return }
-                
                 let completedDays = self.countCompletedDays(for: tracker)
                 let newHabitController = NewHabitController()
                 newHabitController.delegate = self
                 newHabitController.configurator(tracker: tracker, categoryTitle: category.title)
                 newHabitController.setCompletedDaysCount(completedDays)
-                
                 self.present(newHabitController, animated: true)
-                
                 AnalyticsService.shared.trackEvent("click", parameters: [
                     "Screen": "Main",
                     "Item": "edit"
@@ -652,7 +660,6 @@ extension TrackersViewController: UICollectionViewDelegate {
                     self?.deleteTracker(at: indexPath)
                 })
                 self.present(alert, animated: true)
-                
                 AnalyticsService.shared.trackEvent("click", parameters: [
                     "Screen": "Main",
                     "Item": "delete"
@@ -672,7 +679,21 @@ extension TrackersViewController: UICollectionViewDelegate {
 
 extension TrackersViewController: NewHabitControllerDelegate {
     func didCreateTracker(_ tracker: Tracker, category: String) {
-        // NSFetchedResultsController обновит данные автоматически, но можно дополнительно перезагрузить collectionView.
+        var newCategories = categories
+        if let index = categories.firstIndex(where: { $0.title == category }) {
+            let existingCategory = categories[index]
+            let newTrackers = existingCategory.trackers + [tracker]
+            let updatedCategory = TrackerCategory(title: category, trackers: newTrackers)
+            newCategories[index] = updatedCategory
+        } else {
+            let newCategory = TrackerCategory(title: category, trackers: [tracker])
+            newCategories.append(newCategory)
+        }
+        categories = newCategories
+        filteredCategories = filterTrackersByDate(currentDate)
+        collectionView.reloadData()
+        updatePlaceholderVisibility()
+        
         DispatchQueue.main.async {
             self.collectionView.reloadData()
             self.updatePlaceholderVisibility()
