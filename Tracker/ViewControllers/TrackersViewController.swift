@@ -673,21 +673,8 @@ extension TrackersViewController: UICollectionViewDelegate {
 
 extension TrackersViewController: NewHabitControllerDelegate {
     func didCreateTracker(_ tracker: Tracker, category: String) {
-        var newCategories = categories
-        if let index = categories.firstIndex(where: { $0.title == category }) {
-            let existingCategory = categories[index]
-            let newTrackers = existingCategory.trackers + [tracker]
-            let updatedCategory = TrackerCategory(title: category, trackers: newTrackers)
-            newCategories[index] = updatedCategory
-        } else {
-            let newCategory = TrackerCategory(title: category, trackers: [tracker])
-            newCategories.append(newCategory)
-        }
-        categories = newCategories
-        filteredCategories = filterTrackersByDate(currentDate)
-        collectionView.reloadData()
-        updatePlaceholderVisibility()
-        
+        // Если NSFetchedResultsController уже обновляет данные автоматически,
+        // достаточно просто перезагрузить collectionView и обновить placeholder.
         DispatchQueue.main.async {
             self.collectionView.reloadData()
             self.updatePlaceholderVisibility()
