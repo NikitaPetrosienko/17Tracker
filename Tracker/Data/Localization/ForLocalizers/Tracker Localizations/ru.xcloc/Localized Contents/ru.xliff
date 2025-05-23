@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://docs.oasis-open.org/xliff/v1.2/os/xliff-core-1.2-strict.xsd">
+  <file original="Tracker/Data/Localization/en.lproj/InfoPlist.strings" source-language="en" target-language="ru" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="16.0" build-num="16A242d"/>
+    </header>
+    <body>
+      <trans-unit id="CFBundleDisplayName" xml:space="preserve">
+        <source>Tracker</source>
+        <target>Трекер</target>
+        <note>InfoPlist.strings
+  Tracker
+
+  Created by Kaider on 18.01.2025.</note>
+      </trans-unit>
+      <trans-unit id="CFBundleName" xml:space="preserve">
+        <source>Tracker</source>
+        <note>Bundle name</note>
+      </trans-unit>
+    </body>
+  </file>
+  <file original="Tracker/Data/Localization/en.lproj/Localizable.strings" source-language="en" target-language="ru" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="16.0" build-num="16A242d"/>
+    </header>
+    <body>
+      <trans-unit id="cancel" xml:space="preserve">
+        <source>Cancel</source>
+        <target>Отменить</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="delete" xml:space="preserve">
+        <source>Delete</source>
+        <target>Удалить</target>
+        <note/>
+      </trans-unit>
+      <trans-unit id="delete.comfirmation" xml:space="preserve">
+        <source>Are you sure you want to delete the tracker?</source>
+        <target>Уверены что хотите удалить трекер?</target>
+        <note>Delete tracker</note>
+      </trans-unit>
+      <trans-unit id="emptyState.title" xml:space="preserve">
+        <source>What are we going to track?</source>
+        <target>Что хотите удалить?</target>
+        <note>Localizable.strings
+  Tracker
+
+  Created by Kaider on 16.01.2025.</note>
+      </trans-unit>
+    </body>
+  </file>
+  <file original="Tracker/Data/Localization/en.lproj/Localizable.stringsdict" source-language="en" target-language="ru" datatype="plaintext">
+    <header>
+      <tool tool-id="com.apple.dt.xcode" tool-name="Xcode" tool-version="16.0" build-num="16A242d"/>
+    </header>
+    <body>
+      <trans-unit id="/StringKey:dict/NSStringLocalizedFormatKey:dict/:string" xml:space="preserve">
+        <source>%#@VARIABLE@</source>
+        <note/>
+      </trans-unit>
+      <trans-unit id="/StringKey:dict/VARIABLE:dict/few:dict/:string" xml:space="preserve">
+        <source/>
+        <note/>
+      </trans-unit>
+      <trans-unit id="/StringKey:dict/VARIABLE:dict/many:dict/:string" xml:space="preserve">
+        <source/>
+        <note/>
+      </trans-unit>
+      <trans-unit id="/StringKey:dict/VARIABLE:dict/one:dict/:string" xml:space="preserve">
+        <source/>
+        <note/>
+      </trans-unit>
+      <trans-unit id="/StringKey:dict/VARIABLE:dict/other:dict/:string" xml:space="preserve">
+        <source/>
+        <note/>
+      </trans-unit>
+      <trans-unit id="/StringKey:dict/VARIABLE:dict/zero:dict/:string" xml:space="preserve">
+        <source/>
+        <note/>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
